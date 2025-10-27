@@ -1,11 +1,22 @@
 Package: lwo
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Longitudinal Win Odds
 Version: 0.1.0
-Author: Who wrote it
+Author: Yongxi Long
 Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Description: Estimate longitudinal win odds for repeated measurements from longitudinal extension of the probabilistic index model.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+URL: https://github.com/Yongxi-Long/lwo
+BugReports: https://github.com/Yongxi-Long/lwo/issues
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Imports: 
+    dplyr,
+    geepack,
+    simstudy
+Depends: 
+    R (>= 3.5)
+RoxygenNote: 7.3.2
