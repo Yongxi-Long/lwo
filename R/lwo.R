@@ -24,6 +24,8 @@
 #' @param weights Optional observation-level weights.
 #' @param contrasts A list giving contrasts for some or all of the factors appearing in the model formula. The elements of the list should have the same name as the variable and should be either a contrast matrix (specifically, any full-rank matrix with as many rows as there are levels in the factor), or else a function to compute such a matrix given the number of levels.
 #'
+#' @importFrom stats binomial glm.fit is.empty.model model.frame model.matrix model.response model.weights plogis qlogis terms
+#'
 #' @details
 #' The function internally converts individual-level
 #' data to pair-level and performs a logistic regression on the binary pair-level
@@ -126,8 +128,8 @@ lwo <- function(
   # we have to modify the model framework accordingly
   mf.pair <- model.frame(formula, data.pair, drop.unused.levels = TRUE)
   mt.pair <- terms(mf.pair)
-  # return(list(data.pair,formula))
-  ##---- Construct X and Y
+  # return(list(mf.pair,data.pair))
+  #---- Construct X and Y
   Y  <- model.response(mf.pair, "numeric")
   N <- NROW(Y) # number of pairs
   X  <- if (!is.empty.model(mt.pair))
@@ -266,7 +268,8 @@ lwo <- function(
     U_list[[i]] <- U_i |> as.vector()
 
     # bread part of the sandwich estimator
-    Bread_list[[i]] <- t(D_i)%*%V_inv_i%*%D_i # p by p matrix
+    Bread_list[[i]] <- t(D_i)%*%V_inv_i%*%D_i |>
+      as.matrix()# p by p matrix
   }
 
   # the sum of score equations (should be zero)
@@ -275,8 +278,9 @@ lwo <- function(
   U_mat <- do.call(rbind,U_list)
 
   # the Bread part
-  Bread_array <- simplify2array(Bread_list)
-  Bread <- apply(Bread_array, c(1,2), sum)
+  Bread <- Reduce("+", Bread_list)
+  # Bread_array <- simplify2array(Bread_list)
+  # Bread <- apply(Bread_array, c(1,2), sum)
 
   if(std.err == "san.se.modified")
   {
@@ -536,7 +540,7 @@ print.summary.lwo <- function(x,
   # ---- (2) Coefficient table ----
   if (!is.null(x$coefficients)) {
     cat("\nCoefficients:\n")
-    printCoefmat(
+    stats::printCoefmat(
       x$coefficients,
       digits = digits,
       signif.stars = getOption("show.signif.stars", TRUE)
@@ -568,7 +572,7 @@ print.summary.lwo <- function(x,
 # Function to extract variable names from a formula
 extract_variable_names <- function(formula) {
   # Get all terms from the formula
-  terms_object <- terms(formula)
+  terms_object <- stats::terms(formula)
 
   # Extract the variables as they appear in the formula
   all_vars <- all.vars(formula)

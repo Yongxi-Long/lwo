@@ -1,3 +1,4 @@
+utils::globalVariables(c("trt", "id", "visit", "z"))
 #' Simulate Longitudinal Ordinal Data Under a Proportional Odds Model
 #'
 #' This function generates correlated ordinal outcome data over multiple visits,
@@ -34,11 +35,11 @@
 #'   }
 #'
 #' @examples
-#' set.seet(123)
+#' set.seed(123)
 #' def <- simstudy::defData(varname = "sex", dist = "binary", formula = 0.5)
 #' def <- simstudy::defData(def, varname = "age50", dist = "normal", formula = 0, variance = 100)
 #' baseprobs <- c(0.3,0.4,0.3)
-#' corMat <- generate_corMatrix(n_visits = 4,rho=0.6,corstr = "cs")
+#' corMat <- gen_corMatrix(n_visits = 4,rho=0.6,corstr = "cs")
 #' dat <- gen_data(
 #'  N = 200,
 #'  baseprobs = baseprobs,
@@ -177,7 +178,7 @@ gen_data <- function(N,
 
   # ---- (5) Combine and reshape ----
   data_wide <- dplyr::bind_rows(data_trt_ord, data_ctl_ord) |>
-    dplyr::rename_with(~visits, starts_with("grp")) |>
+    dplyr::rename_with(~visits, dplyr::starts_with("grp")) |>
     dplyr::arrange(id)
 
   data_long <- reshape2::melt(data_wide,

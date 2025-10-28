@@ -84,20 +84,20 @@ summary(mod.lwo.spline)
 #> Temporal Correlation Structure: ar1
 ```
 
-``` r
-data_pair <- make_pairs(data=dat_SID_long,
-           id.var = "patient_ID",
-            visit.var = "week",
-            time.vars = "week",
-           outcome.var = "GBS_DS",
-           covariates = c("age","treat_ITT","pre_diarrhea","GBS_DS_baseline"),
-           larger = FALSE)
-```
+### The *gen_data()* function
+
+The package also provides a function, the *gen_data()*, to simulate
+ordinal longitudinal data based on user inputs. The function internally
+relies on the *genOrdCat()* function from the *simstudy* package.
 
 ``` r
+# define the covariate distribution
+# if covariate_def is left NULL, the function will use build-in distributions for (continuous) age variable and (binary) preceding diarrhea variable.
 def <- simstudy::defData(varname = "sex", dist = "binary", formula = 0.5)
 def <- simstudy::defData(def, varname = "age50", dist = "normal", formula = 0, variance = 100)
+# define baseline category probabilities when all covariates are zero/reference values
 baseprobs <- c(0.3,0.4,0.3)
+# correlation matrix, must match the dimension of the visits
 corMatrix <- gen_corMatrix(n_visits = 4,rho=0.6,corstr = "ar1")
 dat <- gen_data(
    N = 200,
@@ -112,20 +112,34 @@ dat <- gen_data(
  )
 ```
 
+### The *calculate_win_odds()* function
+
+The longitudinal ordinal data is generated from a proportional odds
+model, in which the effects are specified as log odds ratio. As a
+results, it is not straightforward to see what the true win odds is for
+each visit after specifying the data generation paramters. This package
+provides a function, the *calculate_win_odds()*, that use simulation to
+compute the true (population-level) win odds at each visit, marginalized
+with respect to the covariate distribution.
+
+The input of this function is similar to that of the *gen_data()*
+function, except that we have *N_approx* instead of *N* to specify the
+number of iterations of the simulation to approximate the true win odds.
+
 ``` r
 corMatrix <- gen_corMatrix(n_visits = 3,rho=0.6,corstr = "ar1")
 estimands <- calculate_win_odds(N_approx = 1e4,
                                baseprobs = rev(c(0.06,0.11,0.12,0.50,0.21)),
                                covs_effects = c("age"=-0.005,
                                                 "pre_diarrhea"= 0.23),
-                               time_effects = c(0,0),
+                               time_effects = c(0.6,1.2),
                                trt_ratio = 1,
-                               time_trt_effects = c(1,1),
+                               time_trt_effects = c(0.4,0.8),
                                visits = visits <- c("week0","week4","week8"),
                                corMatrix = corMatrix)
 #> Covariate distribution not supplied!
 #> Will use build-in distributions for (continuous) age variable and (binary) preceding diarrhea variable.
 estimands
 #>    week0    week4    week8 
-#> 1.000000 1.795744 1.795744
+#> 1.000000 1.268987 1.649855
 ```

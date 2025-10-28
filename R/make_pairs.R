@@ -17,6 +17,8 @@
 #' time variable will not be converted into pair-level.
 #' @param larger larger Logical. If `TRUE` (default), larger values of the outcome indicate better outcomes.
 #'
+#' @importFrom utils combn
+#'
 #' @return
 #' A data frame containing the following columns
 #' \describe{

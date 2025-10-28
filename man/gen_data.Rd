@@ -65,11 +65,11 @@ time-by-treatment interaction effects. It uses the \pkg{simstudy} framework to d
 distributions and simulate correlated ordinal responses.
 }
 \examples{
-set.seet(123)
+set.seed(123)
 def <- simstudy::defData(varname = "sex", dist = "binary", formula = 0.5)
 def <- simstudy::defData(def, varname = "age50", dist = "normal", formula = 0, variance = 100)
 baseprobs <- c(0.3,0.4,0.3)
-corMat <- generate_corMatrix(n_visits = 4,rho=0.6,corstr = "cs")
+corMat <- gen_corMatrix(n_visits = 4,rho=0.6,corstr = "cs")
 dat <- gen_data(
  N = 200,
  baseprobs = baseprobs,

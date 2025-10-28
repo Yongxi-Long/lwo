@@ -11,6 +11,8 @@
 #' @param common Logical (default = \code{TRUE}). If \code{TRUE}, applies a common
 #'   log-odds shift to all cumulative logits; if \code{FALSE}, allows category-specific shifts.
 #'
+#' @importFrom stats plogis qlogis
+#'
 #' @return Numeric vector of shifted category probabilities (same length as \code{p0})
 #' @examples
 #' # proportional odds

@@ -16,7 +16,11 @@ Config/testthat/edition: 3
 Imports: 
     dplyr,
     geepack,
-    simstudy
+    reshape2,
+    simstudy,
+    stats,
+    stringr,
+    utils
 Depends: 
     R (>= 3.5)
 RoxygenNote: 7.3.2
