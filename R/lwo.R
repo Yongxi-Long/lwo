@@ -567,6 +567,160 @@ print.summary.lwo <- function(x,
   invisible(x)
 }
 
+#' Predict Method for \code{lwo} Objects
+#'
+#' @description
+#' Computes predicted linear predictors or response-scale win-probability estimates
+#' from a fitted \code{lwo} model. Optionally returns confidence intervals.
+#'
+#' @details
+#' The \code{predict.lwo()} method takes subject-level \code{newdata} and converts it
+#' into pseudo-pair observations using the same pair construction used during model
+#' fitting. Predictions are made on the resulting pair-level design matrix using the
+#' estimated regression coefficients from the fitted model.
+#'
+#' If \code{type = "link"} (default), predictions are returned on the linear predictor
+#' scale. If \code{type = "response"}, predictions are mapped through the inverse logit
+#' and returned as estimated conditional win probabilities.
+#'
+#' If \code{conf.int = TRUE}, point estimates and corresponding Wald confidence intervals
+#' are returned. Confidence intervals are computed using the estimated variance-covariance
+#' matrix of the regression coefficients stored in the fitted model object.
+#'
+#' @param object A fitted \code{lwo} model object.
+#' @param newdata Data frame of subject-level data at the visits for which predictions
+#'   are desired. Must include all covariates appearing in the fitted model formula.
+#' @param id.var Character string giving the subject identifier variable in \code{newdata}.
+#' @param visit.var Character string giving the visit/time variable in \code{newdata}.
+#' @param time.vars Optional character vector of time-varying covariate names. Defaults to \code{NULL}.
+#' @param type Character string specifying the scale of prediction:
+#'   \describe{
+#'     \item{\code{"link"}}{Return predictions on the linear predictor scale (default).}
+#'     \item{\code{"response"}}{Return predictions on the response scale (win probability).}
+#'   }
+#' @param conf.int Logical; if \code{TRUE}, return Wald confidence intervals. Default is \code{FALSE}.
+#' @param alpha Significance level for confidence intervals. Default is \code{0.05}.
+#' @param na.action Function indicating how to handle missing values. Default is \code{na.pass}.
+#'
+#' @importFrom stats binomial glm.fit is.empty.model model.frame model.matrix model.response model.weights plogis qlogis terms delete.response na.pass qnorm
+#'
+#' @return
+#' If \code{conf.int = FALSE}, returns a numeric vector of predicted values.
+#' If \code{conf.int = TRUE}, returns a matrix with columns:
+#' \code{"lower.CI"}, \code{"estimate"}, and \code{"upper.CI"}.
+#'
+#' @examples
+#' data("dat_SID")
+#' dat_SID_long <- dat_SID$long_format
+#' mod.lwo.spline <- lwo(
+#'   GBS_DS ~ treat_ITT + age + pre_diarrhea + GBS_DS_baseline+
+#'    treat_ITT:splines::ns(week,knots = 2),
+#'  data = dat_SID_long,
+#'  id.var = "patient_ID",
+#'  visit.var = "week",
+#'  time.vars = "week",
+#'  corstr = "ar1",
+#'  larger = FALSE
+#' )
+#' newdata <- dat_SID_long |>
+#' dplyr::filter(patient_ID %in% c(1,4))
+#' predict(object = mod.lwo.spline,
+#'            newdata = newdata,
+#'            id.var = "patient_ID",
+#'            visit.var = "week",
+#'            time.vars = "week",
+#'            type = "response",
+#'            conf.int = TRUE)
+#'
+#' @export
+predict.lwo <- function(object,
+                        newdata = NULL,
+                        id.var,
+                        visit.var,
+                        time.vars = NULL,
+                        type = c("link", "response"),
+                        conf.int = FALSE, alpha = 0.05,
+                        na.action = na.pass) {
+
+  type <- match.arg(type)
+
+  if (is.null(newdata))
+    stop("newdata must be supplied for prediction.", call. = FALSE)
+
+  # Original model formula and terms object (stores spline bases & contrasts)
+  formula <- formula(object)
+  terms.orig <- delete.response(terms(object))
+
+  # Extract variable names
+  relevant_vars <- extract_variable_names(formula)
+  outcome.var <- relevant_vars[1]
+  covariates <- relevant_vars[-1]
+
+  # ---- Convert newdata to *pair-level*, but without generating outcomes ----
+  data.pair <- make_pairs(
+    data       = newdata,
+    id.var     = id.var,
+    visit.var  = visit.var,
+    outcome.var = NULL,
+    covariates = covariates,
+    time.vars  = time.vars
+  )
+
+  # Add placeholder outcome variable (required by model.frame, not used)
+  data.pair[[outcome.var]] <- 0
+
+  # Construct model frame + model matrix using *stored* model structure
+  mf.pair <- model.frame(terms.orig, data.pair, na.action = na.action)
+  mod_mat <- model.matrix(terms.orig, mf.pair)
+
+  # Remove intercept safely
+  if ("(Intercept)" %in% colnames(mod_mat)) {
+    mod_mat <- mod_mat[, colnames(mod_mat) != "(Intercept)", drop = FALSE]
+  }
+
+  # ---- Ensure columns match model coefficients ----
+  coef <- object$coefficients
+
+  missing_cols <- setdiff(names(coef), colnames(mod_mat))
+  if (length(missing_cols) > 0) {
+    stop(
+      "The following required model terms are missing in newdata after processing:\n",
+      paste(missing_cols, collapse = ", "),
+      "\nThis typically occurs when spline bases or factor levels do not match.",
+      call. = FALSE
+    )
+  }
+
+  # Reorder mod_mat columns to match coefficient order
+  mod_mat <- mod_mat[, names(coef), drop = FALSE]
+
+  # ---- Compute linear predictor ----
+  lp <- as.vector(mod_mat %*% coef)
+
+  if (!conf.int) {
+    if (type == "link") return(lp)
+    else return(plogis(lp))
+  }
+
+  # ---- Compute standard errors and CIs ----
+  var_beta <- object$geese$vbeta
+  se_lp <- sqrt(rowSums((mod_mat %*% var_beta) * mod_mat))
+
+  z <- qnorm(1 - alpha / 2)
+  lp_lwr <- lp - z * se_lp
+  lp_upr <- lp + z * se_lp
+
+  if (type == "link") {
+    out <- cbind(lower.CI = lp_lwr, estimate = lp, upper.CI = lp_upr)
+  } else {
+    out <- cbind(lower.CI = plogis(lp_lwr),
+                 estimate = plogis(lp),
+                 upper.CI = plogis(lp_upr))
+  }
+
+  class(out) <- "predict.lwo"
+  return(out)
+}
 
 ## helper functions not exported
 # Function to extract variable names from a formula

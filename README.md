@@ -82,6 +82,25 @@ summary(mod.lwo.spline)
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
 #> Temporal Correlation Structure: ar1
+
+newdata <- dat_SID_long |>
+  dplyr::filter(patient_ID %in% c(1,4))
+predict(object = mod.lwo.spline,
+        newdata = newdata,
+        id.var = "patient_ID",
+        visit.var = "week",
+        time.vars = "week",
+        type = "response",
+        conf.int = TRUE)
+#>    lower.CI  estimate  upper.CI
+#> 1 0.5626075 0.6697171 0.7617069
+#> 2 0.5407436 0.6391269 0.7270718
+#> 3 0.4881737 0.5808062 0.6680729
+#> 4 0.3795544 0.4844813 0.5907945
+#> 5 0.3062142 0.4171180 0.5370935
+#> 6 0.2157820 0.3211037 0.4484364
+#> attr(,"class")
+#> [1] "predict.lwo"
 ```
 
 ### The *gen_data()* function
@@ -141,5 +160,5 @@ estimands <- calculate_win_odds(N_approx = 1e4,
 #> Will use build-in distributions for (continuous) age variable and (binary) preceding diarrhea variable.
 estimands
 #>    week0    week4    week8 
-#> 1.000000 1.268987 1.649855
+#> 1.000000 1.269012 1.649877
 ```

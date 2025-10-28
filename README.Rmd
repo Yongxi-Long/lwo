@@ -66,6 +66,16 @@ mod.lwo.spline <- lwo(
   larger = FALSE
 )
 summary(mod.lwo.spline)
+
+newdata <- dat_SID_long |>
+  dplyr::filter(patient_ID %in% c(1,4))
+predict(object = mod.lwo.spline,
+        newdata = newdata,
+        id.var = "patient_ID",
+        visit.var = "week",
+        time.vars = "week",
+        type = "response",
+        conf.int = TRUE)
 ```
 
 ### The *gen_data()* function
