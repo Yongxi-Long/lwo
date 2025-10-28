@@ -717,8 +717,6 @@ predict.lwo <- function(object,
                  estimate = plogis(lp),
                  upper.CI = plogis(lp_upr))
   }
-
-  class(out) <- "predict.lwo"
   return(out)
 }
 

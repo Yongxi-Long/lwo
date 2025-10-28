@@ -74,8 +74,10 @@ predict(object = mod.lwo.spline,
         id.var = "patient_ID",
         visit.var = "week",
         time.vars = "week",
-        type = "response",
-        conf.int = TRUE)
+        type = "link",
+        conf.int = TRUE) |>
+  exp() |>
+  data.frame()
 ```
 
 ### The *gen_data()* function
