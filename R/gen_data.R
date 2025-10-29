@@ -137,7 +137,7 @@ gen_data <- function(N,
   if (is.null(covariate_def)) {
     message("Covariate distribution not supplied!\nWill use build-in distributions for (continuous) age variable and (binary) preceding diarrhea variable.")
     covariate_def <- simstudy::defData(varname = "age", dist = "normal", formula = 60, variance = 10^2)
-    covariate_def <- simstudy::defData(covariate_def, "pre_diarrhea", dist = "binomial", formula = 0.4)
+    covariate_def <- simstudy::defData(covariate_def, "pre_diarrhea", dist = "binomial", formula = 0.4, variance = 1)
   }
 
   # Random treatment assignment, default (1:1)

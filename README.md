@@ -109,18 +109,45 @@ The package also provides a function, the *gen_data()*, to simulate
 ordinal longitudinal data based on user inputs. The function internally
 relies on the *genOrdCat()* function from the *simstudy* package.
 
+If no covariate distribution is supplied, the function will use internal
+covariate distribution: age from $N(60,10^2)$ and pre_diarrhea from
+$\text{Bernoulli}(0.4)$, and outputs a message.
+
+``` r
+# correlation matrix, must match the dimension of the visits
+corMatrix <- gen_corMatrix(n_visits = 4,rho=0.6,corstr = "ar1")
+dat <- gen_data(
+   N = 200,
+   baseprobs = c(0.2,0.25,0.25,0.3),
+   covs_effects = c(pre_diarrhea = 0.5, age = -0.02),
+   time_effects = c(0.1, 0.3, 0.5),
+   trt_ratio = 1,
+   time_trt_effects = c(0.05, 0.1, 0.15),
+   visits = paste0("v", 1:4),
+   corMatrix = corMatrix
+ )
+#> Covariate distribution not supplied!
+#> Will use build-in distributions for (continuous) age variable and (binary) preceding diarrhea variable.
+head(dat$wide_format)
+#>    id      age pre_diarrhea trt v1 v2 v3 v4
+#> 1:  1 54.39524            1   1  4  4  4  3
+#> 2:  2 57.69823            0   1  3  1  1  2
+#> 3:  3 75.58708            1   1  1  1  1  1
+#> 4:  4 60.70508            0   1  1  1  1  2
+#> 5:  5 61.29288            0   0  3  2  3  4
+#> 6:  6 77.15065            0   1  1  3  3  3
+```
+
 ``` r
 # define the covariate distribution
 # if covariate_def is left NULL, the function will use build-in distributions for (continuous) age variable and (binary) preceding diarrhea variable.
 def <- simstudy::defData(varname = "sex", dist = "binary", formula = 0.5)
 def <- simstudy::defData(def, varname = "age50", dist = "normal", formula = 0, variance = 100)
-# define baseline category probabilities when all covariates are zero/reference values
-baseprobs <- c(0.3,0.4,0.3)
 # correlation matrix, must match the dimension of the visits
 corMatrix <- gen_corMatrix(n_visits = 4,rho=0.6,corstr = "ar1")
 dat <- gen_data(
    N = 200,
-   baseprobs = baseprobs,
+   baseprobs = c(0.3,0.4,0.3),
    covs_effects = c(sex = 0.5, age50 = -0.02),
    time_effects = c(0.1, 0.3, 0.5),
    trt_ratio = 1,
@@ -129,6 +156,16 @@ dat <- gen_data(
    corMatrix = corMatrix,
    covariate_def = def
  )
+head(dat$long_format,8)
+#>   id sex     age50 trt visit score
+#> 1  1   1 -7.822018   0    v1     3
+#> 2  1   1 -7.822018   0    v2     2
+#> 3  1   1 -7.822018   0    v3     1
+#> 4  1   1 -7.822018   0    v4     1
+#> 5  2   1 11.107114   0    v1     2
+#> 6  2   1 11.107114   0    v2     3
+#> 7  2   1 11.107114   0    v3     2
+#> 8  2   1 11.107114   0    v4     3
 ```
 
 ### The *calculate_win_odds()* function
@@ -160,5 +197,5 @@ estimands <- calculate_win_odds(N_approx = 1e4,
 #> Will use build-in distributions for (continuous) age variable and (binary) preceding diarrhea variable.
 estimands
 #>    week0    week4    week8 
-#> 1.000000 1.268990 1.649854
+#> 1.000000 1.271136 1.651171
 ```

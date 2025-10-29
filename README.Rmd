@@ -11,6 +11,7 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
+set.seed(123)
 ```
 
 # lwo
@@ -84,18 +85,35 @@ predict(object = mod.lwo.spline,
 
 The package also provides a function, the *gen_data()*, to simulate ordinal longitudinal data based on user inputs. The function internally relies on the *genOrdCat()* function from the *simstudy* package.
 
+If no covariate distribution is supplied, the function will use internal covariate distribution: age from $N(60,10^2)$ and pre_diarrhea from $\text{Bernoulli}(0.4)$, and outputs a message.
+
+```{r}
+# correlation matrix, must match the dimension of the visits
+corMatrix <- gen_corMatrix(n_visits = 4,rho=0.6,corstr = "ar1")
+dat <- gen_data(
+   N = 200,
+   baseprobs = c(0.2,0.25,0.25,0.3),
+   covs_effects = c(pre_diarrhea = 0.5, age = -0.02),
+   time_effects = c(0.1, 0.3, 0.5),
+   trt_ratio = 1,
+   time_trt_effects = c(0.05, 0.1, 0.15),
+   visits = paste0("v", 1:4),
+   corMatrix = corMatrix
+ )
+head(dat$wide_format)
+```
+
+
 ```{r}
 # define the covariate distribution
 # if covariate_def is left NULL, the function will use build-in distributions for (continuous) age variable and (binary) preceding diarrhea variable.
 def <- simstudy::defData(varname = "sex", dist = "binary", formula = 0.5)
 def <- simstudy::defData(def, varname = "age50", dist = "normal", formula = 0, variance = 100)
-# define baseline category probabilities when all covariates are zero/reference values
-baseprobs <- c(0.3,0.4,0.3)
 # correlation matrix, must match the dimension of the visits
 corMatrix <- gen_corMatrix(n_visits = 4,rho=0.6,corstr = "ar1")
 dat <- gen_data(
    N = 200,
-   baseprobs = baseprobs,
+   baseprobs = c(0.3,0.4,0.3),
    covs_effects = c(sex = 0.5, age50 = -0.02),
    time_effects = c(0.1, 0.3, 0.5),
    trt_ratio = 1,
@@ -104,6 +122,7 @@ dat <- gen_data(
    corMatrix = corMatrix,
    covariate_def = def
  )
+head(dat$long_format,8)
 ```
 
 ### The *calculate_win_odds()* function
